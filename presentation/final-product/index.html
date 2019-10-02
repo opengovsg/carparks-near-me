@@ -1,0 +1,66 @@
+<html>
+  <head>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <title>Carpark Availability</title>
+  </head>
+
+  <body>
+    <h1>Nearest HDB Carpark Availability</h1>
+    <input id="locationInput" placeholder="Enter a location" />
+
+    <p id="carparkInfo"></p>
+  </body>
+</html>
+
+<script>
+  var carparkLocation = document.getElementById("locationInput");
+
+  carparkLocation.addEventListener("keydown", insertLocation);
+
+  async function insertLocation(event) {
+    if (event.key === "Enter") {
+      var carparkResponse = await axios.get(
+        "https://n36b2gu773.execute-api.ap-southeast-1.amazonaws.com/beta?location=" + carparkLocation.value + "&limit=1"
+      );
+      var carpark = carparkResponse.data;
+      console.log(carpark);
+      document.getElementById("carparkInfo").innerText =
+        carpark.lots_available + " lots available at " + carpark.address;
+    }
+  }
+</script>
+
+<style>
+  @import url("https://fonts.googleapis.com/css?family=Mandali");
+
+  body {
+    text-align: center;
+    margin-top: 10%;
+
+    background-image: url("background-image.png");
+    background-size: cover;
+    background-position: center;
+
+    color: lightgrey;
+    font-family: "Mandali";
+  }
+
+  h1 {
+    font-size: 64px;
+  }
+
+  input {
+    width: 70%;
+    padding: 20px;
+
+    font-size: 20px;
+    border-radius: 4px;
+  }
+
+  @media only screen and (max-device-width: 480px) {
+    input {
+      width: 95%;
+      font-size: 32px;
+    }
+  }
+</style>
