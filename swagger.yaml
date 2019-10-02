@@ -4,7 +4,7 @@ info:
   description: "APIs to find out nearest carpark info in Singapore. Relies on OneMaps's API for [location search](https://docs.onemap.sg/#search) and Data.gov.sg's API for [carpark availability](https://api.data.gov.sg/v1/transport/carpark-availability). Designed primarily for use in the Civil Service College's Understanding Web Development course run by [Open Government Products](open.gov.sg). Course materials available online [here](https://github.com/datagovsg/live-parking-info)"
   version: 1.0.0
 servers:
-- url: "https://n36b2gu773.execute-api.ap-southeast-1.amazonaws.com/beta"
+- url: "https://carparks-near-me.herokuapp.com"
 paths:
   /:
     get:
