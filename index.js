@@ -1,15 +1,63 @@
 const axios = require("axios");
 const parse = require("csv-parse/lib/sync");
 const fs = require("fs");
+const port = process.env.PORT || 8080;
+const express = require("express");
+const app = express();
 
-// file reading and parsing done synchronously to prevent race condition
-var hdbCarparkInfoCSV = fs.readFileSync("hdb-carpark-information.csv", "utf8");
-const carparkStaticInfo = parse(hdbCarparkInfoCSV, {
-  columns: true,
-  skip_empty_lines: true
+let carparks;
+
+app.listen(port, async () => {
+  const hdbCarparkInfoCSV = fs.readFileSync(
+    "hdb-carpark-information.csv",
+    "utf8"
+  );
+  const carparkStaticInfo = parse(hdbCarparkInfoCSV, {
+    columns: true,
+    skip_empty_lines: true
+  });
+
+  console.log("Updating carpark availability");
+  const carparkAvailability = await axios
+    .get("https://api.data.gov.sg/v1/transport/carpark-availability", {})
+    .then(response => {
+      const carparkAvailability = response.data.items[0].carpark_data;
+      return carparkAvailability;
+    });
+  // note that carparks is a global variable
+  carparks = combineCarparkData(carparkAvailability, carparkStaticInfo);
+  console.log(
+    `Carpark information and availability updated! Ready to serve requests on port ${port}`
+  );
 });
 
-let carparks
+app.get("/", async (req, res) => {
+  if (req.query.location === undefined) {
+    return res.status(500).send("Required query parameter missing: location");
+  }
+
+  const responseCarparks = await axios
+    .get("https://developers.onemap.sg/commonapi/search", {
+      params: {
+        getAddrDetails: "N",
+        returnGeom: "Y",
+        searchVal: req.query.location
+      }
+    })
+    .then(response => {
+      return response.data.results[0];
+    })
+    .then(location => {
+      return getCarparkList(location.X, location.Y);
+    })
+    .catch(error => console.error(error));
+
+  return res.send(
+    req.query.limit && req.query.limit > 1
+      ? responseCarparks.slice(0, req.query.limit)
+      : responseCarparks[0]
+  );
+});
 
 function combineCarparkData(carparkAvailability, carparks) {
   function findMatchingCarpark(carparkNumber, carparks) {
@@ -74,58 +122,3 @@ async function getCarparkList(x, y) {
   const sortedCarparks = sortCarparksByDistance(carparksWithDistance);
   return sortedCarparks;
 }
-
-const port = process.env.PORT || 8080;
-const express = require("express");
-const app = express();
-
-app.get("/", async (req, res) => {
-  if (req.query.location === undefined) {
-    return res.status(500).send('Required query parameter missing: location')
-  }
-  console.log("Updating carpark availability on server");
-  const carparkAvailability = await axios
-    .get("https://api.data.gov.sg/v1/transport/carpark-availability", {})
-    .then(response => {
-      const carparkAvailability = response.data.items[0].carpark_data;
-      return carparkAvailability;
-    });
-  console.log("Carpark availability updated!");
-  carparks = combineCarparkData(carparkAvailability, carparkStaticInfo);
-  console.log("global carparks information updated");
-
-  const responseCarparks = await axios
-    .get("https://developers.onemap.sg/commonapi/search", {
-      params: {
-        getAddrDetails: "N",
-        returnGeom: "Y",
-        searchVal: req.query.location
-      }
-    })
-    .then(response => {
-      return response.data.results[0];
-    })
-    .then(location => {
-      return getCarparkList(location.X, location.Y);
-    })
-    .catch(error => console.error(error));
-  // const APIGatewayResponse = {
-  //   statusCode: 200,
-  //   // https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-cors.html
-  //   headers: {
-  //     "Access-Control-Allow-Origin": "*"
-  //   },
-  //   body: JSON.stringify(
-  //     
-  //   ),
-  //   isBase64Encoded: false
-  // };
-  // return APIGatewayResponse;
-  res.send(req.query.limit && req.query.limit > 1
-          ? responseCarparks.slice(0, req.query.limit)
-          : responseCarparks[0]);
-});
-
-app.listen(port, async () => {
-  console.log(`Example app listening on port ${port}!`);
-});
