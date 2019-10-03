@@ -20,6 +20,7 @@
   "homepage": "https://github.com/opengovsg/carparks-near-me#readme",
   "dependencies": {
     "axios": "^0.19.0",
+    "cors": "^2.8.5",
     "csv-parse": "^4.4.7",
     "express": "^4.17.1"
   },

@@ -4,8 +4,11 @@ const fs = require("fs");
 const port = process.env.PORT || 8080;
 const express = require("express");
 const app = express();
+const cors = require("cors");
 
 let carparks;
+
+app.use(cors());
 
 app.listen(port, async () => {
   const hdbCarparkInfoCSV = fs.readFileSync(
